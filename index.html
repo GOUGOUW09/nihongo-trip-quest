@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#10243e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="日语闯关">
+  <meta name="description" content="79天日本旅行日语闯关：北海道与东京旅行口语、广播听力和突发交通应对。">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/icon.svg">
+  <link rel="stylesheet" href="styles.css">
+  <title>日本旅行日语闯关</title>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <button class="brand" id="homeButton" aria-label="回到今日任务">
+        <span class="brand-mark">旅</span>
+        <span><strong>日本旅行日语</strong><small>TRIP QUEST 2026</small></span>
+      </button>
+      <button class="icon-button" id="menuButton" aria-label="打开菜单" aria-expanded="false">☰</button>
+    </header>
+
+    <main id="app" tabindex="-1"></main>
+
+    <nav class="bottom-nav" aria-label="主要导航">
+      <button data-view="today" class="active"><span>今</span>今日</button>
+      <button data-view="passport"><span>旅</span>护照</button>
+      <button data-view="travel"><span>行</span>旅行模式</button>
+    </nav>
+  </div>
+
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <div><small>日本旅行日语</small><h2>学习菜单</h2></div>
+      <button class="icon-button" id="closeMenu" aria-label="关闭菜单">×</button>
+    </div>
+    <button data-drawer-view="today">今日任务</button>
+    <button data-drawer-view="makeup">补关车站</button>
+    <button data-drawer-view="bonus">今日加练</button>
+    <button data-drawer-view="travel">旅行模式</button>
+    <button data-drawer-view="settings">设置与数据</button>
+  </aside>
+  <div class="scrim" id="scrim" hidden></div>
+
+  <dialog id="welcomeDialog" class="sheet-dialog">
+    <div class="passport-cover">
+      <span class="crest">旅</span>
+      <p>JAPAN TRIP QUEST</p>
+      <h1>你的79天<br>旅行日语护照</h1>
+      <div class="route-dots"><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+    <div class="dialog-copy">
+      <h2>先知道两件事</h2>
+      <p>学习记录只保存在这台设备。清除浏览器数据或更换手机，会失去进度。</p>
+      <p>口语识别由浏览器处理；本站不上传或长期保存你的录音。你也可以随时改用自评。</p>
+      <button class="primary full" id="acceptWelcome">开始第一站</button>
+    </div>
+  </dialog>
+
+  <dialog id="exerciseDialog" class="exercise-dialog">
+    <div id="exerciseContent"></div>
+  </dialog>
+
+  <dialog id="phraseDialog" class="phrase-dialog">
+    <button class="dialog-close" data-close-dialog="phraseDialog" aria-label="关闭">×</button>
+    <div id="phraseDisplay"></div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="content.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

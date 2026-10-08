@@ -1,0 +1,13 @@
+{
+  "name": "日本旅行日语闯关",
+  "short_name": "日语闯关",
+  "description": "北海道与东京旅行日语的79天闯关工具",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f8f3e8",
+  "theme_color": "#10243e",
+  "lang": "zh-CN",
+  "icons": [
+    {"src":"assets/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}

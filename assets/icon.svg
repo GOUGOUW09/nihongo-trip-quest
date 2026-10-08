@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#10243e"/>
+  <circle cx="256" cy="256" r="162" fill="none" stroke="#cfa95a" stroke-width="10"/>
+  <circle cx="256" cy="256" r="137" fill="#cf3d45"/>
+  <text x="256" y="324" text-anchor="middle" font-family="serif" font-size="218" font-weight="700" fill="#fffdf8">旅</text>
+</svg>
