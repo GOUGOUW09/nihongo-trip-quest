@@ -26,6 +26,7 @@ body {
 }
 button, input { font: inherit; }
 button { color: inherit; }
+button:disabled { cursor: not-allowed; opacity: .48; }
 .app-shell { max-width: 760px; min-height: 100vh; margin: 0 auto; padding-bottom: calc(84px + var(--safe-bottom)); }
 .topbar {
   height: 72px;
@@ -129,11 +130,23 @@ dialog::backdrop { background: rgba(8,18,31,.65); backdrop-filter: blur(3px); }
 .translation { padding: 14px 16px; background: #f0ece2; border-radius: 14px; line-height: 1.6; }
 .choice-grid { display: grid; gap: 10px; margin-top: 22px; }
 .choice-grid button { min-height: 54px; padding: 12px 15px; border-radius: 15px; background: white; border: 1px solid var(--line); text-align: left; font-weight: 650; }
+.choice-grid button:disabled { cursor: default; opacity: 1; }
 .choice-grid button.correct { border-color: #65a890; background: #e5f5ef; }
 .choice-grid button.wrong { border-color: var(--red); background: #fae9e9; }
+.keyword-grid button { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.keyword-grid button.selected { border-color: #5687b8; background: #e8f1fa; }
+.keyword-grid button.missed { border-color: #d69b35; background: #fff2cf; }
+.keyword-grid button small { flex: 0 0 auto; font-size: 11px; font-weight: 850; }
+.keyword-grid button.correct small { color: #397d67; }
+.keyword-grid button.missed small { color: #9a6714; }
+.keyword-grid button.wrong small { color: var(--red-dark); }
 .answer-panel { display: none; margin-top: 18px; padding: 16px; border-radius: 16px; background: #eaf2ef; }
 .answer-panel.show { display: block; }
-.exercise-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
+.exercise-actions { display: grid; grid-template-columns: 1fr auto 1.4fr; gap: 10px; align-items: center; }
+.question-counter { min-width: 46px; text-align: center; color: var(--muted); font-size: 13px; font-weight: 800; }
+.inline-practice { margin-top: 14px; }
+.question-result { margin-top: 14px; padding: 11px 14px; border-radius: 13px; color: #397d67; background: #e5f5ef; text-align: center; font-weight: 800; }
+.review-result-actions, .speaking-check-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; margin-top: 16px; }
 .audio-controls { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0; }
 .audio-controls button { border: 1px solid var(--line); border-radius: 999px; padding: 9px 13px; background: white; font-weight: 700; }
 .audio-controls button.active { background: var(--ink); color: white; }

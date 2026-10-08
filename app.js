@@ -21,6 +21,7 @@
   let recorder = null;
   let recordingChunks = [];
   let recordingUrl = null;
+  const QUESTION_COUNTS = {katakana:10,review:8,dialogue:5,listening:4,speaking:3};
 
   function loadProgress() {
     try { return {...structuredClone(defaultProgress), ...JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}")}; }
@@ -109,7 +110,7 @@
         <div class="stat"><strong>${progress.xp}</strong><small>旅行 XP</small></div>
         <div class="stat"><strong>${pct}%</strong><small>路线进度</small></div>
       </section>
-      <div class="section-head"><div><h2>今日任务</h2><p>五关合计60分钟，可随时暂停</p></div><button data-go="bonus">加练</button></div>
+      <div class="section-head"><div><h2>今日任务</h2><p>五关共30题，合计60分钟</p></div><button data-go="bonus">加练</button></div>
       <section class="mission-list">
         ${lesson.modules.map(m=>missionCard(lesson,m)).join("")}
       </section>
@@ -126,7 +127,7 @@
     const meta=C.moduleMeta[m.id]; const done=moduleDone(lesson,m.id);
     return `<button class="mission-card ${done?"done":""}" data-module="${m.id}">
       <span class="mission-icon">${meta.icon}</span>
-      <span class="mission-copy"><strong>${meta.name} · ${m.minutes}分钟</strong><small>${meta.hint}</small></span>
+      <span class="mission-copy"><strong>${meta.name} · ${m.minutes}分钟</strong><small>${QUESTION_COUNTS[m.id]}题 · ${meta.hint}</small></span>
       <span class="mission-status">${done?"✓ 完成":"开始 ›"}</span>
     </button>`;
   }
@@ -137,15 +138,40 @@
     renderers[moduleId](lesson,module);
     exerciseDialog.showModal();
   }
-  function shell(label,title,body,actions="") {
+  function shell(label,title,body,actions="",question=null) {
     const doneCount=activeLesson().modules.filter(m=>moduleDone(activeLesson(),m.id)).length;
+    const progressValue=question?Math.round((question.completed/question.total)*100):doneCount*20;
+    const progressLabel=question?`${question.index+1}/${question.total}题`:`${doneCount}/5`;
     return `<div class="exercise-shell">
-      <div class="exercise-top"><button class="dialog-close" data-exit>×</button><div class="bar"><i style="width:${doneCount*20}%"></i></div><strong>${doneCount}/5</strong></div>
+      <div class="exercise-top"><button class="dialog-close" data-exit>×</button><div class="bar"><i style="width:${progressValue}%"></i></div><strong>${progressLabel}</strong></div>
       <div class="exercise-body"><div class="exercise-label">${label}</div><h2>${title}</h2>${body}</div>
       <div class="exercise-actions">${actions}</div>
     </div>`;
   }
   function bindExit() { $("[data-exit]",exerciseDialog).addEventListener("click",()=>{stopMedia();exerciseDialog.close();}); }
+  function questionSequence(pool,anchor,count=5) {
+    const start=Math.max(0,pool.findIndex(item=>item.id===anchor.id));
+    return Array.from({length:Math.min(count,pool.length)},(_,i)=>pool[(start+i)%pool.length]);
+  }
+  function questionNav(index,total,done) {
+    return `<button class="ghost" data-prev ${index===0?"disabled":""}>← 上一题</button><span class="question-counter">${index+1} / ${total}</span><button class="primary" data-next ${done?"":"disabled"}>${index===total-1?"完成本关":"下一题 →"}</button>`;
+  }
+  function questionMeta(index,states,total) {
+    return {index,total,completed:states.filter(state=>state?.done).length};
+  }
+  function bindQuestionNav(index,states,draw,finish) {
+    const previous=$("[data-prev]",exerciseDialog);
+    const next=$("[data-next]",exerciseDialog);
+    if(previous)previous.addEventListener("click",()=>{stopMedia();draw(index-1);});
+    if(next)next.addEventListener("click",()=>{
+      if(!states[index]?.done)return;
+      stopMedia();
+      if(index===states.length-1){
+        if(states.every(state=>state?.done))finish();
+        else toast("还有题目没有完成");
+      } else draw(index+1);
+    });
+  }
   function finishModule(lesson,moduleId,score=true) {
     const list=progress.completedModules[lesson.id]||[];
     if(!list.includes(moduleId)) { list.push(moduleId); progress.completedModules[lesson.id]=list; progress.xp+=10; }
@@ -163,56 +189,100 @@
   function offsetIso(iso,n) { const d=localNoon(iso); d.setDate(d.getDate()+n); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
 
   function renderKatakana(lesson,module) {
-    const item=module.item; const choices=shuffle([item,...shuffle(C.katakana.filter(x=>x.id!==item.id)).slice(0,2)]);
-    exerciseDialog.innerHTML=shell("KATAKANA SPRINT","认出这个旅行词",`
-      <div class="jp-large">${item.jp}</div><p class="kana">来自英语：${item.source}</p>
-      <div class="choice-grid">${choices.map(c=>`<button data-choice="${c.id}">${c.cn}</button>`).join("")}</div>
-      <div class="answer-panel" id="answerPanel"><strong>${item.jp}</strong> · ${item.cn}<br><small>点击播放，跟读三遍</small></div>
-    `,`<button class="ghost" data-audio>▶ 发音</button><button class="primary" data-finish disabled>完成</button>`);
-    bindExit();
-    $$("[data-choice]",exerciseDialog).forEach(b=>b.addEventListener("click",()=>{
-      const ok=b.dataset.choice===item.id; b.classList.add(ok?"correct":"wrong");
-      if(!ok)addMistake("katakana",item.id); $("#answerPanel",exerciseDialog).classList.add("show"); $("[data-finish]",exerciseDialog).disabled=false;
-    }));
-    $("[data-audio]",exerciseDialog).addEventListener("click",()=>speak(item.jp,.9));
-    $("[data-finish]",exerciseDialog).addEventListener("click",()=>finishModule(lesson,module.id));
+    const items=questionSequence(C.katakana,module.item,QUESTION_COUNTS.katakana);
+    const states=Array(items.length).fill(null);
+    function draw(index) {
+      const item=items[index];
+      const previous=states[index];
+      const choices=previous?.choices||shuffle([item,...shuffle(C.katakana.filter(x=>x.id!==item.id)).slice(0,2)]);
+      exerciseDialog.innerHTML=shell("KATAKANA SPRINT","认出这个旅行词",`
+        <div class="jp-large">${item.jp}</div><p class="kana">来自英语：${item.source}</p>
+        <div class="choice-grid">${choices.map(c=>{const chosen=previous?.selected===c.id;const cls=previous?.done?(c.id===item.id?"correct":chosen?"wrong":""):"";return `<button data-choice="${c.id}" class="${cls}" ${previous?.done?"disabled":""}>${c.cn}</button>`;}).join("")}</div>
+        <div class="answer-panel ${previous?.done?"show":""}" id="answerPanel"><strong>${item.jp}</strong> · ${item.cn}<br><small>点击播放，跟读三遍</small></div>
+        <button class="ghost full inline-practice" data-audio>▶ 发音</button>
+      `,questionNav(index,items.length,previous?.done),questionMeta(index,states,items.length));
+      bindExit();
+      $$("[data-choice]",exerciseDialog).forEach(button=>button.addEventListener("click",()=>{
+        if(states[index]?.done)return;
+        const ok=button.dataset.choice===item.id;
+        states[index]={done:true,selected:button.dataset.choice,choices};
+        if(!ok)addMistake("katakana",item.id);
+        draw(index);
+      }));
+      $("[data-audio]",exerciseDialog).addEventListener("click",()=>speak(item.jp,.9));
+      bindQuestionNav(index,states,draw,()=>finishModule(lesson,module.id));
+    }
+    draw(0);
   }
 
-  function dueMistake() { return progress.mistakes.find(m=>m.due<=todayIso()); }
   function mistakeItem(m) {
     if(!m)return null;
     const pool=m.type==="katakana"?C.katakana:m.type==="announcement"?C.announcements:C.dialogues;
     return pool.find(x=>x.id===m.refId)||null;
   }
   function renderReview(lesson,module) {
-    const mistake=dueMistake(); const item=mistakeItem(mistake)||module.item;
-    const isKat=Boolean(item.source); const question=isKat?`${item.jp} 是什么意思？`:(item.prompt||`你还记得这句广播吗？`);
-    const jp=item.jp; const kana=item.kana||`来自英语：${item.source}`; const cn=item.cn;
-    exerciseDialog.innerHTML=shell("SPACED REVIEW",mistake?"到期错题回炉":"热身复习",`
-      <p>${escapeHtml(question)}</p><div class="answer-panel" id="answerPanel"><div class="jp-large" style="font-size:27px">${jp}</div><p class="kana">${kana}</p><div class="translation">${cn}</div></div>
-      <button class="secondary full" id="reveal" style="margin-top:20px">显示答案</button>
-    `,`<button class="ghost" data-result="hard" disabled>还要复习</button><button class="primary" data-result="good" disabled>记住了</button>`);
-    bindExit();
-    $("#reveal",exerciseDialog).addEventListener("click",()=>{$("#answerPanel",exerciseDialog).classList.add("show");$$('[data-result]',exerciseDialog).forEach(b=>b.disabled=false);$("#reveal",exerciseDialog).hidden=true;speak(jp,.88);});
-    $$("[data-result]",exerciseDialog).forEach(b=>b.addEventListener("click",()=>{
-      if(mistake){ if(b.dataset.result==="good"){mistake.stage++; const gaps=[1,3,7]; if(mistake.stage>=gaps.length)progress.mistakes=progress.mistakes.filter(x=>x.id!==mistake.id); else mistake.due=offsetIso(todayIso(),gaps[mistake.stage]);}else mistake.due=offsetIso(todayIso(),1); saveProgress(); }
-      finishModule(lesson,module.id);
-    }));
+    const dueEntries=progress.mistakes.filter(m=>m.due<=todayIso()).map(m=>({item:mistakeItem(m),mistake:m})).filter(entry=>entry.item);
+    const entries=[];
+    dueEntries.forEach(entry=>{if(entries.length<QUESTION_COUNTS.review&&!entries.some(x=>x.item.id===entry.item.id))entries.push(entry);});
+    questionSequence(C.dialogues,module.item,C.dialogues.length).forEach(item=>{if(entries.length<QUESTION_COUNTS.review&&!entries.some(x=>x.item.id===item.id))entries.push({item,mistake:null});});
+    const states=Array(entries.length).fill(null);
+    function draw(index) {
+      const {item,mistake}=entries[index];
+      const state=states[index]||{};
+      const isKat=Boolean(item.source);
+      const question=isKat?`${item.jp} 是什么意思？`:(item.prompt||"你还记得这句广播吗？");
+      const jp=item.jp; const kana=item.kana||`来自英语：${item.source}`; const cn=item.cn;
+      exerciseDialog.innerHTML=shell("SPACED REVIEW",mistake?"到期错题回炉":"热身复习",`
+        <p>${escapeHtml(question)}</p>
+        <div class="answer-panel ${state.revealed||state.done?"show":""}" id="answerPanel"><div class="jp-large" style="font-size:27px">${jp}</div><p class="kana">${kana}</p><div class="translation">${cn}</div>${state.done?`<p class="question-result">${state.result==="good"?"✓ 已记住":"↺ 已加入复习"}</p>`:""}</div>
+        ${state.revealed||state.done?"":`<button class="secondary full" id="reveal" style="margin-top:20px">显示答案</button>`}
+        ${state.revealed&&!state.done?`<div class="review-result-actions"><button class="ghost" data-result="hard">还要复习</button><button class="primary" data-result="good">记住了</button></div>`:""}
+      `,questionNav(index,entries.length,state.done),questionMeta(index,states,entries.length));
+      bindExit();
+      if($("#reveal",exerciseDialog))$("#reveal",exerciseDialog).addEventListener("click",()=>{states[index]={...state,revealed:true,done:false};speak(jp,.88);draw(index);});
+      $$("[data-result]",exerciseDialog).forEach(button=>button.addEventListener("click",()=>{
+        if(states[index]?.done)return;
+        const result=button.dataset.result;
+        if(mistake){
+          if(result==="good"){
+            mistake.stage++;
+            const gaps=[1,3,7];
+            if(mistake.stage>=gaps.length)progress.mistakes=progress.mistakes.filter(x=>x.id!==mistake.id);
+            else mistake.due=offsetIso(todayIso(),gaps[mistake.stage]);
+          } else mistake.due=offsetIso(todayIso(),1);
+          saveProgress();
+        }
+        states[index]={revealed:true,done:true,result};
+        draw(index);
+      }));
+      bindQuestionNav(index,states,draw,()=>finishModule(lesson,module.id));
+    }
+    draw(0);
   }
 
   function renderDialogue(lesson,module) {
-    const item=module.item;
-    exerciseDialog.innerHTML=shell("SCENE DIALOGUE",item.theme,`
-      <p>${item.prompt}</p><div class="choice-grid">${item.choices.map((c,i)=>`<button data-choice="${i}">${c}</button>`).join("")}</div>
-      <div class="answer-panel" id="answerPanel"><strong>${item.jp}</strong><p class="kana">${item.kana}</p><div class="translation">${item.cn}</div></div>
-    `,`<button class="ghost" data-audio>▶ 听答案</button><button class="primary" data-finish disabled>跟读完成</button>`);
-    bindExit(); let scored=false;
-    $$("[data-choice]",exerciseDialog).forEach(b=>b.addEventListener("click",()=>{
-      if(scored)return; scored=true; const ok=Number(b.dataset.choice)===item.answer; b.classList.add(ok?"correct":"wrong");
-      if(!ok)addMistake("dialogue",item.id); $("#answerPanel",exerciseDialog).classList.add("show"); $("[data-finish]",exerciseDialog).disabled=false; speak(item.jp,.88);
-    }));
-    $("[data-audio]",exerciseDialog).addEventListener("click",()=>speak(item.jp,.88));
-    $("[data-finish]",exerciseDialog).addEventListener("click",()=>finishModule(lesson,module.id));
+    const items=questionSequence(C.dialogues,module.item,QUESTION_COUNTS.dialogue);
+    const states=Array(items.length).fill(null);
+    function draw(index) {
+      const item=items[index];
+      const state=states[index];
+      exerciseDialog.innerHTML=shell("SCENE DIALOGUE",item.theme,`
+        <p>${item.prompt}</p><div class="choice-grid">${item.choices.map((choice,i)=>{const chosen=state?.selected===i;const cls=state?.done?(i===item.answer?"correct":chosen?"wrong":""):"";return `<button data-choice="${i}" class="${cls}" ${state?.done?"disabled":""}>${choice}</button>`;}).join("")}</div>
+        <div class="answer-panel ${state?.done?"show":""}" id="answerPanel"><strong>${item.jp}</strong><p class="kana">${item.kana}</p><div class="translation">${item.cn}</div></div>
+        <button class="ghost full inline-practice" data-audio>▶ 听答案并跟读</button>
+      `,questionNav(index,items.length,state?.done),questionMeta(index,states,items.length));
+      bindExit();
+      $$("[data-choice]",exerciseDialog).forEach(button=>button.addEventListener("click",()=>{
+        if(states[index]?.done)return;
+        const selected=Number(button.dataset.choice); const ok=selected===item.answer;
+        states[index]={done:true,selected};
+        if(!ok)addMistake("dialogue",item.id);
+        speak(item.jp,.88); draw(index);
+      }));
+      $("[data-audio]",exerciseDialog).addEventListener("click",()=>speak(item.jp,.88));
+      bindQuestionNav(index,states,draw,()=>finishModule(lesson,module.id));
+    }
+    draw(0);
   }
 
   function playAnnouncement(item,rate) {
@@ -220,46 +290,75 @@
     activeAudio.play().catch(()=>{ activeAudio=null; speak(item.jp,rate); });
   }
   function renderListening(lesson,module) {
-    const item=module.item; const options=shuffle([...item.keywords,...item.distractors]).slice(0,7); let selected=[];
-    exerciseDialog.innerHTML=shell("STATION ANNOUNCEMENT",item.title,`
-      <p>先不看原文，播放广播并选出你听到的关键信息。</p>
-      <div class="audio-controls"><button data-speed=".75">0.75×</button><button data-speed="1" class="active">1×</button><button data-speed="1.15">1.15×</button></div>
-      <div class="choice-grid keyword-grid">${options.map(o=>`<button data-keyword="${escapeHtml(o)}">${o}</button>`).join("")}</div>
-      <div class="answer-panel" id="answerPanel"><div class="jp-large" style="font-size:24px">${item.jp}</div><p class="kana">${item.kana}</p><div class="translation">${item.cn}</div></div>
-    `,`<button class="ghost" id="playAudio">▶ 播放广播</button><button class="primary" id="checkListen">检查关键词</button>`);
-    bindExit(); let rate=progress.preferredSpeed||1;
-    $$("[data-speed]",exerciseDialog).forEach(b=>{b.classList.toggle("active",Number(b.dataset.speed)===rate);b.addEventListener("click",()=>{rate=Number(b.dataset.speed);progress.preferredSpeed=rate;saveProgress();$$('[data-speed]',exerciseDialog).forEach(x=>x.classList.toggle('active',x===b));playAnnouncement(item,rate);});});
-    $("#playAudio",exerciseDialog).addEventListener("click",()=>playAnnouncement(item,rate));
-    $$("[data-keyword]",exerciseDialog).forEach(b=>b.addEventListener("click",()=>{const k=b.dataset.keyword;if(selected.includes(k)){selected=selected.filter(x=>x!==k);b.classList.remove("correct");}else{selected.push(k);b.classList.add("correct");}}));
-    $("#checkListen",exerciseDialog).addEventListener("click",()=>{
-      const hits=item.keywords.filter(k=>selected.includes(k)).length; const score=hits/item.keywords.length;
-      $("#answerPanel",exerciseDialog).classList.add("show");
-      if(score<.66)addMistake("announcement",item.id);
-      const oldButton=$("#checkListen",exerciseDialog);
-      const finishButton=oldButton.cloneNode(true);
-      finishButton.textContent=score>=.66?`抓到 ${hits}/${item.keywords.length} · 完成`:`抓到 ${hits}/${item.keywords.length} · 看原文后完成`;
-      oldButton.replaceWith(finishButton);
-      finishButton.addEventListener("click",()=>finishModule(lesson,module.id,score>=.8));
-    },{once:true});
+    const items=questionSequence(C.announcements,module.item,QUESTION_COUNTS.listening);
+    const states=items.map(item=>({done:false,selected:[],options:shuffle([...item.keywords,...item.distractors]).slice(0,7)}));
+    let rate=progress.preferredSpeed||1;
+    function draw(index) {
+      const item=items[index]; const state=states[index];
+      exerciseDialog.innerHTML=shell("STATION ANNOUNCEMENT",item.title,`
+        <p>先不看原文，播放广播并选出你听到的关键信息。</p>
+        <div class="audio-controls"><button data-speed=".75">0.75×</button><button data-speed="1">1×</button><button data-speed="1.15">1.15×</button></div>
+        <button class="ghost full" id="playAudio">▶ 播放广播</button>
+        <div class="choice-grid keyword-grid">${state.options.map(option=>{
+          const selected=state.selected.includes(option); const correct=item.keywords.includes(option);
+          const cls=state.done?(selected&&correct?"correct":correct?"missed":selected?"wrong":""):selected?"selected":"";
+          const feedback=state.done?(selected&&correct?"选对":correct?"漏选":selected?"错选":""):"";
+          return `<button data-keyword="${escapeHtml(option)}" class="${cls}" ${state.done?"disabled":""}><span>${escapeHtml(option)}</span>${feedback?`<small>${feedback}</small>`:""}</button>`;
+        }).join("")}</div>
+        ${state.done?`<div class="question-result">抓到 ${state.hits}/${item.keywords.length} 个关键词</div>`:`<button class="secondary full inline-practice" id="checkListen">检查关键词</button>`}
+        <div class="answer-panel ${state.done?"show":""}" id="answerPanel"><div class="jp-large" style="font-size:24px">${item.jp}</div><p class="kana">${item.kana}</p><div class="translation">${item.cn}</div></div>
+      `,questionNav(index,items.length,state.done),questionMeta(index,states,items.length));
+      bindExit();
+      $$("[data-speed]",exerciseDialog).forEach(button=>{button.classList.toggle("active",Number(button.dataset.speed)===rate);button.addEventListener("click",()=>{rate=Number(button.dataset.speed);progress.preferredSpeed=rate;saveProgress();$$('[data-speed]',exerciseDialog).forEach(x=>x.classList.toggle('active',x===button));playAnnouncement(item,rate);});});
+      $("#playAudio",exerciseDialog).addEventListener("click",()=>playAnnouncement(item,rate));
+      $$("[data-keyword]",exerciseDialog).forEach(button=>button.addEventListener("click",()=>{
+        if(state.done)return;
+        const keyword=button.dataset.keyword;
+        if(state.selected.includes(keyword))state.selected=state.selected.filter(x=>x!==keyword);
+        else state.selected.push(keyword);
+        draw(index);
+      }));
+      if($("#checkListen",exerciseDialog))$("#checkListen",exerciseDialog).addEventListener("click",()=>{
+        const hits=item.keywords.filter(keyword=>state.selected.includes(keyword)).length;
+        state.hits=hits; state.score=hits/item.keywords.length; state.done=true;
+        if(state.score<.66)addMistake("announcement",item.id);
+        draw(index);
+      });
+      bindQuestionNav(index,states,draw,()=>{
+        const passed=states.filter(state=>state.score>=.8).length/items.length>=.8;
+        finishModule(lesson,module.id,passed);
+      });
+    }
+    draw(0);
   }
 
   function normalized(s) { return String(s||"").replace(/[\s、。！？,.!?]/g,"").replace(/ヶ/g,"ケ").toLowerCase(); }
   function scoreSpeech(transcript,keywords) { const t=normalized(transcript); const hits=keywords.filter(k=>t.includes(normalized(k))).length; return {hits,total:keywords.length,pass:hits>=Math.max(1,Math.ceil(keywords.length*.5))}; }
   function renderSpeaking(lesson,module) {
-    const item=module.item;
-    exerciseDialog.innerHTML=shell("SPEAKING BOSS",item.scene,`
-      <p>${item.ask}</p><button class="ghost full" id="showModel">需要提示</button>
-      <div class="answer-panel" id="answerPanel"><strong>${item.answer}</strong><p class="kana">${item.kana}</p><button class="ghost" id="hearModel">▶ 听示范</button></div>
-      <button class="mic-orb" id="micButton" aria-label="开始口语识别">🎙</button>
-      <div class="transcript" id="transcript">点一下麦克风，用日语回答</div>
-      <div id="speechFallback"></div>
-    `,`<button class="ghost" id="selfRetry">再说一次</button><button class="primary" id="selfPass" disabled>完成 Boss</button>`);
-    bindExit();
-    $("#showModel",exerciseDialog).addEventListener("click",()=>$("#answerPanel",exerciseDialog).classList.add("show"));
-    $("#hearModel",exerciseDialog).addEventListener("click",()=>speak(item.answer,.86));
-    $("#micButton",exerciseDialog).addEventListener("click",()=>startRecognition(item));
-    $("#selfRetry",exerciseDialog).addEventListener("click",()=>{$("#transcript",exerciseDialog).textContent="点一下麦克风，再试一次";$("#selfPass",exerciseDialog).disabled=true;});
-    $("#selfPass",exerciseDialog).addEventListener("click",()=>finishModule(lesson,module.id,$("#selfPass",exerciseDialog).dataset.pass==="true"));
+    const items=questionSequence(C.bosses,module.item,QUESTION_COUNTS.speaking);
+    const states=Array(items.length).fill(null);
+    function draw(index) {
+      const item=items[index]; const state=states[index];
+      exerciseDialog.innerHTML=shell("SPEAKING BOSS",item.scene,`
+        <p>${item.ask}</p><button class="ghost full" id="showModel">需要提示</button>
+        <div class="answer-panel ${state?.done?"show":""}" id="answerPanel"><strong>${item.answer}</strong><p class="kana">${item.kana}</p><button class="ghost" id="hearModel">▶ 听示范</button></div>
+        ${state?.done?`<div class="question-result">${state.pass?"✓ 关键表达达标":"✓ 已完成自评"}</div>`:`<button class="mic-orb" id="micButton" aria-label="开始口语识别">🎙</button><div class="transcript" id="transcript">点一下麦克风，用日语回答</div><div id="speechFallback"></div><div class="speaking-check-actions"><button class="ghost" id="selfRetry">再说一次</button><button class="primary" id="selfPass" disabled>确认本题</button></div>`}
+      `,questionNav(index,items.length,state?.done),questionMeta(index,states,items.length));
+      bindExit();
+      $("#showModel",exerciseDialog).addEventListener("click",()=>$("#answerPanel",exerciseDialog).classList.add("show"));
+      $("#hearModel",exerciseDialog).addEventListener("click",()=>speak(item.answer,.86));
+      if($("#micButton",exerciseDialog))$("#micButton",exerciseDialog).addEventListener("click",()=>startRecognition(item));
+      if($("#selfRetry",exerciseDialog))$("#selfRetry",exerciseDialog).addEventListener("click",()=>{$("#transcript",exerciseDialog).textContent="点一下麦克风，再试一次";$("#selfPass",exerciseDialog).disabled=true;});
+      if($("#selfPass",exerciseDialog))$("#selfPass",exerciseDialog).addEventListener("click",()=>{
+        states[index]={done:true,pass:$("#selfPass",exerciseDialog).dataset.pass==="true"};
+        stopMedia(); draw(index);
+      });
+      bindQuestionNav(index,states,draw,()=>{
+        const passed=states.filter(state=>state.pass).length/items.length>=.8;
+        finishModule(lesson,module.id,passed);
+      });
+    }
+    draw(0);
   }
 
   function startRecognition(item) {
