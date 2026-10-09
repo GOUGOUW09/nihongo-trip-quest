@@ -10,6 +10,7 @@
   --muted: #6f7781;
   --line: #d8d3c8;
   --shadow: 0 14px 40px rgba(16, 36, 62, .12);
+  --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
@@ -29,11 +30,11 @@ button { color: inherit; }
 button:disabled { cursor: not-allowed; opacity: .48; }
 .app-shell { max-width: 760px; min-height: 100vh; margin: 0 auto; padding-bottom: calc(84px + var(--safe-bottom)); }
 .topbar {
-  height: 72px;
+  min-height: calc(72px + var(--safe-top));
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 18px;
+  padding: calc(12px + var(--safe-top)) 18px 12px;
   position: sticky;
   top: 0;
   z-index: 20;
@@ -96,7 +97,7 @@ h1, h2, h3, p { margin-top: 0; }
 .bottom-nav button.active { color: var(--red); }
 .bottom-nav button.active span { color: white; background: var(--red); }
 
-.drawer { position: fixed; right: 0; top: 0; bottom: 0; width: min(350px, 88vw); z-index: 50; background: var(--paper); padding: 24px; transform: translateX(105%); transition: transform .25s ease; box-shadow: -20px 0 45px rgba(16,36,62,.2); }
+.drawer { position: fixed; right: 0; top: 0; bottom: 0; width: min(350px, 88vw); z-index: 50; background: var(--paper); padding: calc(24px + var(--safe-top)) 24px 24px; transform: translateX(105%); transition: transform .25s ease; box-shadow: -20px 0 45px rgba(16,36,62,.2); }
 .drawer.open { transform: translateX(0); }
 .drawer-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .drawer-head h2 { margin: 2px 0 0; }
@@ -126,6 +127,11 @@ dialog::backdrop { background: rgba(8,18,31,.65); backdrop-filter: blur(3px); }
 .exercise-label { color: var(--red); font-size: 12px; font-weight: 800; letter-spacing: .16em; }
 .exercise-body h2 { font-size: clamp(27px, 8vw, 38px); margin: 9px 0; line-height: 1.25; }
 .jp-large { font-size: clamp(28px, 9vw, 48px); line-height: 1.45; font-weight: 800; letter-spacing: .02em; }
+.jp-ruby { font-size: clamp(22px, 6vw, 30px); line-height: 2.15; font-weight: 800; letter-spacing: .015em; }
+.jp-ruby ruby { ruby-position: over; ruby-align: center; }
+.jp-ruby rt { color: var(--red-dark); font-size: .5em; font-weight: 750; letter-spacing: 0; }
+.dialogue-ruby { font-size: clamp(20px, 5.5vw, 28px); }
+.dialogue-review-ruby { font-size: 18px; line-height: 2.05; }
 .kana { color: var(--muted); font-size: 15px; line-height: 1.6; }
 .translation { padding: 14px 16px; background: #f0ece2; border-radius: 14px; line-height: 1.6; }
 .choice-grid { display: grid; gap: 10px; margin-top: 22px; }
@@ -188,6 +194,20 @@ dialog::backdrop { background: rgba(8,18,31,.65); backdrop-filter: blur(3px); }
 .calendar-item { display: flex; align-items: center; gap: 12px; padding: 13px; background: white; border: 1px solid var(--line); border-radius: 15px; }
 .calendar-item button { margin-left: auto; border: 0; color: white; background: var(--red); border-radius: 11px; padding: 9px 11px; font-weight: 700; }
 .calendar-item button[disabled] { background: #c5c1b8; }
+.review-days { display: grid; gap: 12px; }
+.review-day { border: 1px solid var(--line); border-radius: 18px; background: rgba(255,253,248,.94); overflow: hidden; box-shadow: 0 6px 20px rgba(16,36,62,.05); }
+.review-day summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px; cursor: pointer; list-style: none; }
+.review-day summary::-webkit-details-marker { display: none; }
+.review-day summary strong, .review-day summary small { display: block; }
+.review-day summary small { margin-top: 4px; color: var(--muted); }
+.review-day summary > span:last-child { flex: 0 0 auto; color: var(--red); font-size: 12px; font-weight: 850; }
+.dialogue-review-list { display: grid; gap: 10px; padding: 0 12px 12px; }
+.dialogue-review-card { padding: 15px; border-radius: 15px; background: white; border: 1px solid rgba(16,36,62,.08); }
+.dialogue-review-card > strong { display: block; font-size: 18px; line-height: 1.55; }
+.dialogue-review-card > p:last-child { margin: 10px 0 0; color: var(--ink-2); }
+.dialogue-review-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.dialogue-review-head span { color: var(--red-dark); font-size: 11px; font-weight: 850; letter-spacing: .08em; }
+.dialogue-review-head button { border: 0; border-radius: 999px; padding: 7px 11px; color: var(--ink); background: rgba(16,36,62,.07); font-size: 12px; font-weight: 800; }
 .empty { text-align: center; color: var(--muted); padding: 35px 10px; }
 .setting-row { display: flex; gap: 16px; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
 .setting-row:last-child { border-bottom: 0; }

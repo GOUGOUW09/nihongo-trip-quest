@@ -36,6 +36,25 @@
     { id:"d15", theme:"东京地铁", prompt:"确认这趟车是否去新宿。", jp:"この電車は新宿に行きますか。", kana:"この でんしゃ は しんじゅく に いきますか。", cn:"这趟电车去新宿吗？", choices:["この電車は新宿に行きますか。","新宿はこの電車を買いますか。","電車で新宿を食べますか。"], answer:0 },
     { id:"d16", theme:"药店", prompt:"在药店说明自己头疼。", jp:"頭が痛いです。旅行中でも飲める薬はありますか。", kana:"あたま が いたいです。りょこうちゅう でも のめる くすり は ありますか。", cn:"我头疼。有旅行中也能服用的药吗？", choices:["頭が痛いです。旅行中でも飲める薬はありますか。","頭を旅行したいです。薬を食べますか。","薬が痛いので、頭はありません。"], answer:0 }
   ];
+  const dialogueRuby = {
+    d01:"<ruby>札幌<rt>さっぽろ</rt></ruby><ruby>行<rt>ゆ</rt></ruby>きの<ruby>電車<rt>でんしゃ</rt></ruby>は、どこから<ruby>乗<rt>の</rt></ruby>りますか。",
+    d02:"すみません、もう<ruby>少<rt>すこ</rt></ruby>しゆっくり<ruby>話<rt>はな</rt></ruby>していただけますか。",
+    d03:"<ruby>予約<rt>よやく</rt></ruby>しています。チェックインをお<ruby>願<rt>ねが</rt></ruby>いします。",
+    d04:"<ruby>辛<rt>から</rt></ruby>くないおすすめはありますか。",
+    d05:"クレジットカードは<ruby>使<rt>つか</rt></ruby>えますか。",
+    d06:"<ruby>別<rt>べつ</rt></ruby>のサイズを<ruby>試<rt>ため</rt></ruby>してもいいですか。",
+    d07:"<ruby>一番<rt>いちばん</rt></ruby><ruby>近<rt>ちか</rt></ruby>い<ruby>地下鉄<rt>ちかてつ</rt></ruby>の<ruby>駅<rt>えき</rt></ruby>はどこですか。",
+    d08:"<ruby>明日<rt>あした</rt></ruby>、<ruby>洞爺<rt>とうや</rt></ruby>までの<ruby>指定席<rt>していせき</rt></ruby>を<ruby>二枚<rt>にまい</rt></ruby>お<ruby>願<rt>ねが</rt></ruby>いします。",
+    d09:"<ruby>特急北斗<rt>とっきゅうほくと</rt></ruby>は、このホームで<ruby>合<rt>あ</rt></ruby>っていますか。",
+    d10:"<ruby>洞爺湖温泉<rt>とうやこおんせん</rt></ruby><ruby>行<rt>ゆ</rt></ruby>きのバス<ruby>停<rt>てい</rt></ruby>はどこですか。",
+    d11:"この<ruby>列車<rt>れっしゃ</rt></ruby>は、<ruby>何時<rt>なんじ</rt></ruby>ごろ<ruby>出発<rt>しゅっぱつ</rt></ruby>する<ruby>予定<rt>よてい</rt></ruby>ですか。",
+    d12:"<ruby>運休<rt>うんきゅう</rt></ruby>の<ruby>場合<rt>ばあい</rt></ruby>、<ruby>代行<rt>だいこう</rt></ruby>バスはありますか。",
+    d13:"<ruby>遅延<rt>ちえん</rt></ruby>で<ruby>乗<rt>の</rt></ruby>り<ruby>換<rt>か</rt></ruby>えに<ruby>間<rt>ま</rt></ruby>に<ruby>合<rt>あ</rt></ruby>いませんでした。どうすればいいですか。",
+    d14:"<ruby>列車<rt>れっしゃ</rt></ruby>が<ruby>遅<rt>おく</rt></ruby>れているため、<ruby>到着<rt>とうちゃく</rt></ruby>が<ruby>遅<rt>おそ</rt></ruby>くなります。",
+    d15:"この<ruby>電車<rt>でんしゃ</rt></ruby>は<ruby>新宿<rt>しんじゅく</rt></ruby>に<ruby>行<rt>い</rt></ruby>きますか。",
+    d16:"<ruby>頭<rt>あたま</rt></ruby>が<ruby>痛<rt>いた</rt></ruby>いです。<ruby>旅行中<rt>りょこうちゅう</rt></ruby>でも<ruby>飲<rt>の</rt></ruby>める<ruby>薬<rt>くすり</rt></ruby>はありますか。"
+  };
+  dialogues.forEach(item=>item.ruby=dialogueRuby[item.id]);
 
   const announcements = [
     { id:"a01", level:1, title:"站台变更", jp:"札幌行き快速エアポートは、四番ホームから発車いたします。", kana:"さっぽろゆき かいそくエアポート は、よんばんホーム から はっしゃ いたします。", cn:"开往札幌的快速Airport将从4号站台发车。", keywords:["札幌","快速エアポート","四番ホーム"], distractors:["函館","運休","二番ホーム"], audio:"assets/audio/a01.m4a" },
@@ -53,6 +72,24 @@
     { id:"a13", level:3, title:"巴士延误", jp:"道路の積雪により、洞爺湖温泉行きのバスは三十分以上遅れる見込みです。", kana:"どうろ の せきせつ により、とうやこおんせん ゆき の バス は さんじゅっぷん いじょう おくれる みこみ です。", cn:"因道路积雪，开往洞爷湖温泉的巴士预计晚点30分钟以上。", keywords:["道路の積雪","洞爺湖温泉","三十分以上","遅れる"], distractors:["列車","運休","札幌"], audio:"assets/audio/a13.m4a" },
     { id:"a14", level:3, title:"最后一班车提前", jp:"除雪作業のため、本日の最終列車は通常より一時間早く発車します。", kana:"じょせつ さぎょう の ため、ほんじつ の さいしゅう れっしゃ は つうじょう より いちじかん はやく はっしゃ します。", cn:"因除雪作业，今天的末班车将比平时提前一小时发车。", keywords:["除雪作業","最終列車","一時間早く"], distractors:["遅く","始発","運休"], audio:"assets/audio/a14.m4a" }
   ];
+
+  const announcementRuby = {
+    a01:"<ruby>札幌<rt>さっぽろ</rt></ruby><ruby>行<rt>ゆ</rt></ruby>き<ruby>快速<rt>かいそく</rt></ruby>エアポートは、<ruby>四番<rt>よんばん</rt></ruby>ホームから<ruby>発車<rt>はっしゃ</rt></ruby>いたします。",
+    a02:"<ruby>雪<rt>ゆき</rt></ruby>の<ruby>影響<rt>えいきょう</rt></ruby>により、この<ruby>列車<rt>れっしゃ</rt></ruby>は<ruby>約<rt>やく</rt></ruby><ruby>十分<rt>じゅっぷん</rt></ruby><ruby>遅<rt>おく</rt></ruby>れて<ruby>運転<rt>うんてん</rt></ruby>しています。",
+    a03:"この<ruby>列車<rt>れっしゃ</rt></ruby>は、<ruby>終点<rt>しゅうてん</rt></ruby><ruby>函館<rt>はこだて</rt></ruby>に<ruby>午後<rt>ごご</rt></ruby><ruby>三時四十分<rt>さんじよんじゅっぷん</rt></ruby>に<ruby>到着<rt>とうちゃく</rt></ruby>する<ruby>予定<rt>よてい</rt></ruby>です。",
+    a04:"<ruby>特急北斗<rt>とっきゅうほくと</rt></ruby>は<ruby>全車指定席<rt>ぜんしゃしていせき</rt></ruby>です。ご<ruby>乗車<rt>じょうしゃ</rt></ruby>には<ruby>指定席特急券<rt>していせきとっきゅうけん</rt></ruby>が<ruby>必要<rt>ひつよう</rt></ruby>です。",
+    a05:"<ruby>大雪<rt>おおゆき</rt></ruby>のため、<ruby>札幌<rt>さっぽろ</rt></ruby>から<ruby>洞爺<rt>とうや</rt></ruby>までの<ruby>一部<rt>いちぶ</rt></ruby>の<ruby>列車<rt>れっしゃ</rt></ruby>が<ruby>運休<rt>うんきゅう</rt></ruby>となっています。",
+    a06:"<ruby>運転見合<rt>うんてんみあ</rt></ruby>わせ<ruby>区間<rt>くかん</rt></ruby>では、<ruby>駅前<rt>えきまえ</rt></ruby>から<ruby>代行<rt>だいこう</rt></ruby>バスを<ruby>運行<rt>うんこう</rt></ruby>いたします。",
+    a07:"<ruby>運転再開<rt>うんてんさいかい</rt></ruby>は<ruby>午後二時<rt>ごごにじ</rt></ruby>ごろを<ruby>見込<rt>みこ</rt></ruby>んでいます。",
+    a08:"<ruby>明日<rt>あした</rt></ruby>は<ruby>暴風雪<rt>ぼうふうせつ</rt></ruby>が<ruby>予想<rt>よそう</rt></ruby>されるため、<ruby>午前中<rt>ごぜんちゅう</rt></ruby>の<ruby>列車<rt>れっしゃ</rt></ruby>を<ruby>計画運休<rt>けいかくうんきゅう</rt></ruby>いたします。",
+    a09:"この<ruby>列車<rt>れっしゃ</rt></ruby>は<ruby>行<rt>い</rt></ruby>き<ruby>先<rt>さき</rt></ruby>を<ruby>変更<rt>へんこう</rt></ruby>し、<ruby>洞爺駅<rt>とうやえき</rt></ruby>で<ruby>運転<rt>うんてん</rt></ruby>を<ruby>打<rt>う</rt></ruby>ち<ruby>切<rt>き</rt></ruby>ります。",
+    a10:"<ruby>列車<rt>れっしゃ</rt></ruby>の<ruby>遅<rt>おく</rt></ruby>れにより、<ruby>函館<rt>はこだて</rt></ruby>での<ruby>乗<rt>の</rt></ruby>り<ruby>換<rt>か</rt></ruby>えには<ruby>間<rt>ま</rt></ruby>に<ruby>合<rt>あ</rt></ruby>いません。<ruby>係員<rt>かかりいん</rt></ruby>にお<ruby>申<rt>もう</rt></ruby>し<ruby>出<rt>で</rt></ruby>ください。",
+    a11:"<ruby>安全確認<rt>あんぜんかくにん</rt></ruby>のため、ただいま<ruby>全線<rt>ぜんせん</rt></ruby>で<ruby>運転<rt>うんてん</rt></ruby>を<ruby>見合<rt>みあ</rt></ruby>わせています。",
+    a12:"<ruby>運転<rt>うんてん</rt></ruby>を<ruby>再開<rt>さいかい</rt></ruby>しましたが、<ruby>列車<rt>れっしゃ</rt></ruby>に<ruby>最大二十分<rt>さいだいにじゅっぷん</rt></ruby>の<ruby>遅<rt>おく</rt></ruby>れが<ruby>出<rt>で</rt></ruby>ています。",
+    a13:"<ruby>道路<rt>どうろ</rt></ruby>の<ruby>積雪<rt>せきせつ</rt></ruby>により、<ruby>洞爺湖温泉行<rt>とうやこおんせんゆ</rt></ruby>きのバスは<ruby>三十分以上<rt>さんじゅっぷんいじょう</rt></ruby><ruby>遅<rt>おく</rt></ruby>れる<ruby>見込<rt>みこ</rt></ruby>みです。",
+    a14:"<ruby>除雪作業<rt>じょせつさぎょう</rt></ruby>のため、<ruby>本日<rt>ほんじつ</rt></ruby>の<ruby>最終列車<rt>さいしゅうれっしゃ</rt></ruby>は<ruby>通常<rt>つうじょう</rt></ruby>より<ruby>一時間<rt>いちじかん</rt></ruby><ruby>早<rt>はや</rt></ruby>く<ruby>発車<rt>はっしゃ</rt></ruby>します。"
+  };
+  announcements.forEach(item=>item.ruby=announcementRuby[item.id]);
 
   const bosses = [
     { id:"b01", scene:"对站员求助", ask:"请说：不好意思，可以再说慢一点吗？", answer:"すみません、もう少しゆっくり話していただけますか。", kana:"すみません、もうすこし ゆっくり はなして いただけますか。", keywords:["すみません","ゆっくり","話して"] },

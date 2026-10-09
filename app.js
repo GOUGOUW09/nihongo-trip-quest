@@ -71,6 +71,7 @@
     $$(".bottom-nav button").forEach(b=>b.classList.toggle("active", b.dataset.view===view));
     if(view==="today") renderToday();
     else if(view==="passport") renderPassport();
+    else if(view==="dialogue-review") renderDialogueReview();
     else if(view==="travel") renderTravel();
     else if(view==="makeup") renderMakeup();
     else if(view==="bonus") renderBonus();
@@ -268,7 +269,7 @@
       const state=states[index];
       exerciseDialog.innerHTML=shell("SCENE DIALOGUE",item.theme,`
         <p>${item.prompt}</p><div class="choice-grid">${item.choices.map((choice,i)=>{const chosen=state?.selected===i;const cls=state?.done?(i===item.answer?"correct":chosen?"wrong":""):"";return `<button data-choice="${i}" class="${cls}" ${state?.done?"disabled":""}>${choice}</button>`;}).join("")}</div>
-        <div class="answer-panel ${state?.done?"show":""}" id="answerPanel"><strong>${item.jp}</strong><p class="kana">${item.kana}</p><div class="translation">${item.cn}</div></div>
+        <div class="answer-panel ${state?.done?"show":""}" id="answerPanel"><div class="jp-ruby dialogue-ruby">${item.ruby||escapeHtml(item.jp)}</div><div class="translation">${item.cn}</div></div>
         <button class="ghost full inline-practice" data-audio>▶ 听答案并跟读</button>
       `,questionNav(index,items.length,state?.done),questionMeta(index,states,items.length));
       bindExit();
@@ -297,6 +298,7 @@
       const item=items[index]; const state=states[index];
       exerciseDialog.innerHTML=shell("STATION ANNOUNCEMENT",item.title,`
         <p>先不看原文，播放广播并选出你听到的关键信息。</p>
+        <div class="speed-note">清晰学习版 · 日语系统声线 · 可调语速</div>
         <div class="audio-controls"><button data-speed=".75">0.75×</button><button data-speed="1">1×</button><button data-speed="1.15">1.15×</button></div>
         <button class="ghost full" id="playAudio">▶ 播放广播</button>
         <div class="choice-grid keyword-grid">${state.options.map(option=>{
@@ -306,7 +308,7 @@
           return `<button data-keyword="${escapeHtml(option)}" class="${cls}" ${state.done?"disabled":""}><span>${escapeHtml(option)}</span>${feedback?`<small>${feedback}</small>`:""}</button>`;
         }).join("")}</div>
         ${state.done?`<div class="question-result">抓到 ${state.hits}/${item.keywords.length} 个关键词</div>`:`<button class="secondary full inline-practice" id="checkListen">检查关键词</button>`}
-        <div class="answer-panel ${state.done?"show":""}" id="answerPanel"><div class="jp-large" style="font-size:24px">${item.jp}</div><p class="kana">${item.kana}</p><div class="translation">${item.cn}</div></div>
+        <div class="answer-panel ${state.done?"show":""}" id="answerPanel"><div class="jp-ruby">${item.ruby||escapeHtml(item.jp)}</div><div class="translation">${item.cn}</div></div>
       `,questionNav(index,items.length,state.done),questionMeta(index,states,items.length));
       bindExit();
       $$("[data-speed]",exerciseDialog).forEach(button=>{button.classList.toggle("active",Number(button.dataset.speed)===rate);button.addEventListener("click",()=>{rate=Number(button.dataset.speed);progress.preferredSpeed=rate;saveProgress();$$('[data-speed]',exerciseDialog).forEach(x=>x.classList.toggle('active',x===button));playAnnouncement(item,rate);});});
@@ -417,8 +419,36 @@
       <div class="progress-bar"><i style="width:${completionPct()}%"></i></div>
       <div class="section-head"><div><h2>阶段印章</h2><p>完成一个阶段即可盖满</p></div></div>
       <section class="stamp-grid">${C.phases.map((p,i)=>{const total=C.lessons.filter(l=>l.phase===p.id).length;const done=phaseCounts[i];return `<div class="stamp ${done===total?"earned":""}">${p.name}<br>${done}/${total}</div>`;}).join("")}</section>
+      <div class="section-head"><div><h2>对话复习册</h2><p>回看已经完成的场景对话</p></div><button id="openDialogueReview">打开复习册</button></div>
       <div class="section-head"><div><h2>出发就绪度</h2><p>最后5天累计评估</p></div></div>
       <section class="panel"><div class="final-score">${ready?"READY":`${Math.round(((listenScores.filter(Boolean).length+speechPass)/10)*100)||0}%`}</div><p>交通广播达标 ${listenScores.filter(Boolean).length}/5 · 口语情境通过 ${speechPass}/5</p><p>${ready?"你已达到本次旅行的出发标准。":"完成12月21—25日的无中文模拟，广播至少4/5、口语至少4/5即可通关。"}</p></section>`;
+    $("#openDialogueReview").addEventListener("click",()=>nav("dialogue-review"));
+  }
+
+  function dialogueItemsForLesson(lesson) {
+    const module=lesson.modules.find(item=>item.id==="dialogue");
+    return module?questionSequence(C.dialogues,module.item,QUESTION_COUNTS.dialogue):[];
+  }
+  function renderDialogueReview() {
+    const lessons=C.lessons.filter(lesson=>moduleDone(lesson,"dialogue")).reverse();
+    const sentenceCount=lessons.reduce((total,lesson)=>total+dialogueItemsForLesson(lesson).length,0);
+    app.innerHTML=`
+      <section class="hero"><div class="eyebrow">DIALOGUE REVIEW</div><h1>对话复习册</h1><p>完成场景对话关卡后，当天练过的句子会自动收进这里。</p><div class="hero-meta"><span class="pill">${lessons.length} 个学习日</span><span class="pill">${sentenceCount} 条对话</span><span class="pill">可反复播放</span></div></section>
+      <div class="section-head"><div><h2>已完成的对话</h2><p>按学习日期倒序排列</p></div></div>
+      <section class="review-days">${lessons.length?lessons.map((lesson,index)=>`
+        <details class="review-day" ${index===0?"open":""}>
+          <summary><span><strong>${displayDate(lesson.date)}</strong><small>${escapeHtml(lesson.phaseName)} · ${escapeHtml(lesson.place)}</small></span><span>${QUESTION_COUNTS.dialogue}句⌄</span></summary>
+          <div class="dialogue-review-list">${dialogueItemsForLesson(lesson).map(item=>`
+            <article class="dialogue-review-card">
+              <div class="dialogue-review-head"><span>${escapeHtml(item.theme)}</span><button data-review-audio="${item.id}" aria-label="播放${escapeHtml(item.jp)}">▶ 播放</button></div>
+              <div class="jp-ruby dialogue-review-ruby">${item.ruby||escapeHtml(item.jp)}</div>
+              <p>${escapeHtml(item.cn)}</p>
+            </article>`).join("")}</div>
+        </details>`).join(""):`<div class="empty">完成一次“场景对话”关卡后，这里就会出现你的第一组复习内容。</div>`}</section>`;
+    $$("[data-review-audio]",app).forEach(button=>button.addEventListener("click",()=>{
+      const item=C.dialogues.find(dialogue=>dialogue.id===button.dataset.reviewAudio);
+      if(item)speak(item.jp,.88);
+    }));
   }
 
   function renderTravel(fromAuto=false) {

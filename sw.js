@@ -1,4 +1,4 @@
-const CACHE = "nihongo-trip-quest-v3";
+const CACHE = "nihongo-trip-quest-v5";
 const CORE = [
   "./", "index.html", "styles.css", "content.js", "app.js", "manifest.webmanifest", "assets/icon.svg",
   ...Array.from({length:14},(_,i)=>`assets/audio/a${String(i+1).padStart(2,"0")}.m4a`)
